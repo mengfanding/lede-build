@@ -127,6 +127,6 @@ jobs:
         uses: actions/upload-artifact@v2
         with:
           name: OpenWrt_firmware
-          path: ./bin/targets/
+          path: ./bin/targets/ramips/mt7620/openwrt-ramips-mt7620-youku_yk-l1c-squashfs-sysupgrade.bin
 
 
