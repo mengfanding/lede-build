@@ -1,0 +1,213 @@
+#
+# This is free software, lisence use MIT.
+# 
+# Copyright (C) 2019 P3TERX <https://p3terx.com>
+# Copyright (C) 2020 KFERMercer <KFER.Mercer@gmail.com>
+# 
+# <https://github.com/KFERMercer/OpenWrt-CI>
+#
+
+name: OpenWrt-gdock
+
+on:
+  push:
+    branches: 
+      - master
+  schedule:
+    - cron: 0 23 * * *
+  release:
+    types: [published]
+
+jobs:
+
+  build_openwrt:
+
+    name: Build OpenWrt firmware
+
+    runs-on: ubuntu-latest
+
+    if: github.event.repository.owner.id == github.event.sender.id
+
+    steps:
+
+      - name: Checkout
+        uses: actions/checkout@v2
+        with:
+          ref: master
+
+      - name: Space cleanup
+        env:
+          DEBIAN_FRONTEND: noninteractive
+        run: |
+          docker rmi `docker images -q`
+          sudo rm -rf /usr/share/dotnet /etc/mysql /etc/php /etc/apt/sources.list.d /usr/local/lib/android
+          sudo -E apt-get -y purge azure-cli ghc* zulu* hhvm llvm* firefox google* dotnet* powershell openjdk* adoptopenjdk* mysql* php* mongodb* dotnet* moby* snapd* || true
+          sudo -E apt-get update
+          sudo -E apt-get -y install build-essential asciidoc binutils bzip2 gawk gettext git libncurses5-dev libz-dev patch python3 unzip zlib1g-dev lib32gcc1 libc6-dev-i386 subversion flex uglifyjs gcc-multilib g++-multilib p7zip p7zip-full msmtp libssl-dev texinfo libglib2.0-dev xmlto qemu-utils upx libelf-dev autoconf automake libtool autopoint device-tree-compiler antlr3 gperf swig libtinfo5
+          sudo -E apt-get -y autoremove --purge
+          sudo -E apt-get clean
+
+          # sudo mkdir -p -m 777 /mnt/openwrt/bin /mnt/openwrt/build_dir/host /mnt/openwrt/build_dir/hostpkg /mnt/openwrt/dl /mnt/openwrt/feeds /mnt/openwrt/staging_dir
+          # ln -s /mnt/openwrt/bin ./bin
+          # mkdir -p ./build_dir
+          # ln -s -f /mnt/openwrt/build_dir/host ./build_dir/host
+          # ln -s -f /mnt/openwrt/build_dir/hostpkg ./build_dir/hostpkg
+          # ln -s /mnt/openwrt/dl ./dl
+          # ln -s /mnt/openwrt/feeds ./feeds
+          # ln -s /mnt/openwrt/staging_dir ./staging_dir
+
+          df -h
+
+      - name: Update feeds
+        run: |
+          ./scripts/feeds update -a
+          ./scripts/feeds install -a
+
+      - name: Generate configuration file
+        run: |
+          rm -f ./.config*
+          touch ./.config
+
+          #
+          # 在 cat >> .config <<EOF 到 EOF 之间粘贴你的编译配置, 需注意缩进关系
+          # 例如:
+
+          cat >> .config <<EOF
+          CONFIG_TARGET_ipq40xx=y
+          CONFIG_TARGET_ipq40xx_DEVICE_p2w_r619ac-128m=y
+          CONFIG_TARGET_rockchip_armv8_DEVICE_friendlyarm_nanopi-r2s=y
+          CONFIG_TARGET_BOARD="rockchip"
+          CONFIG_TARGET_PROFILE="DEVICE_friendlyarm_nanopi-r2s"
+          CONFIG_TARGET_BOARD="ipq40xx"
+          CONFIG_TARGET_SUBTARGET="generic"
+          CONFIG_TARGET_PROFILE="DEVICE_p2w_r619ac-128m"
+          CONFIG_TARGET_ARCH_PACKAGES="arm_cortex-a7_neon-vfpv4"
+          CONFIG_DEFAULT_TARGET_OPTIMIZATION="-Os -pipe"
+          CONFIG_CPU_TYPE="cortex-a7+neon-vfpv4"
+          CONFIG_LINUX_5_4=y
+          CONFIG_DEFAULT_ath10k-firmware-qca4019-ct=y
+          CONFIG_DEFAULT_autocore-arm=y
+          CONFIG_DEFAULT_automount=y
+          CONFIG_DEFAULT_autosamba=y
+          CONFIG_DEFAULT_base-files=y
+          CONFIG_DEFAULT_block-mount=y
+          CONFIG_DEFAULT_busybox=y
+          CONFIG_DEFAULT_ca-certificates=y
+          CONFIG_DEFAULT_coremark=y
+          CONFIG_DEFAULT_curl=y
+          CONFIG_DEFAULT_ddns-scripts_aliyun=y
+          CONFIG_DEFAULT_ddns-scripts_dnspod=y
+          CONFIG_DEFAULT_default-settings=y
+          CONFIG_DEFAULT_dnsmasq-full=y
+          CONFIG_DEFAULT_dropbear=y
+          CONFIG_DEFAULT_ethtool=y
+          CONFIG_DEFAULT_firewall=y
+          CONFIG_DEFAULT_fstools=y
+          CONFIG_DEFAULT_htop=y
+          CONFIG_DEFAULT_ip-full=y
+          CONFIG_DEFAULT_ipq-wifi-p2w_r619ac=y
+          CONFIG_DEFAULT_ipset=y
+          CONFIG_DEFAULT_iptables=y
+          CONFIG_DEFAULT_iptables-mod-extra=y
+          CONFIG_DEFAULT_iptables-mod-tproxy=y
+          CONFIG_DEFAULT_iwinfo=y
+          CONFIG_DEFAULT_kmod-ath10k-ct=y
+          CONFIG_DEFAULT_kmod-gpio-button-hotplug=y
+          CONFIG_DEFAULT_kmod-ipt-raw=y
+          CONFIG_DEFAULT_kmod-leds-gpio=y
+          CONFIG_DEFAULT_kmod-nf-nathelper=y
+          CONFIG_DEFAULT_kmod-nf-nathelper-extra=y
+          CONFIG_DEFAULT_kmod-tun=y
+          CONFIG_DEFAULT_kmod-usb-dwc3=y
+          CONFIG_DEFAULT_kmod-usb-dwc3-qcom=y
+          CONFIG_DEFAULT_kmod-usb3=y
+          CONFIG_DEFAULT_libc=y
+          CONFIG_DEFAULT_libgcc=y
+          CONFIG_DEFAULT_libustream-openssl=y
+          CONFIG_DEFAULT_logd=y
+          CONFIG_DEFAULT_luci=y
+          CONFIG_DEFAULT_luci-app-accesscontrol=y
+          CONFIG_DEFAULT_luci-app-adbyby-plus=y
+          CONFIG_DEFAULT_luci-app-arpbind=y
+          CONFIG_DEFAULT_luci-app-autoreboot=y
+          CONFIG_DEFAULT_luci-app-cpufreq=y
+          CONFIG_DEFAULT_luci-app-ddns=y
+          CONFIG_DEFAULT_luci-app-filetransfer=y
+          CONFIG_DEFAULT_luci-app-ipsec-vpnd=y
+          CONFIG_DEFAULT_luci-app-nlbwmon=y
+          CONFIG_DEFAULT_luci-app-ssr-plus=y
+          CONFIG_DEFAULT_luci-app-turboacc=y
+          CONFIG_DEFAULT_luci-app-unblockmusic=y
+          CONFIG_DEFAULT_luci-app-upnp=y
+          CONFIG_DEFAULT_luci-app-vlmcsd=y
+          CONFIG_DEFAULT_luci-app-vsftpd=y
+          CONFIG_DEFAULT_luci-app-wol=y
+          CONFIG_DEFAULT_luci-app-zerotier=y
+          CONFIG_DEFAULT_luci-newapi=y
+          CONFIG_DEFAULT_mtd=y
+          CONFIG_DEFAULT_netifd=y
+          CONFIG_DEFAULT_opkg=y
+          CONFIG_DEFAULT_ppp=y
+          CONFIG_DEFAULT_ppp-mod-pppoe=y
+          CONFIG_DEFAULT_procd=y
+          CONFIG_DEFAULT_swconfig=y
+          CONFIG_DEFAULT_uboot-envtools=y
+          CONFIG_DEFAULT_uci=y
+          CONFIG_DEFAULT_uclient-fetch=y
+          CONFIG_DEFAULT_urandom-seed=y
+          CONFIG_DEFAULT_wpad-openssl=y
+          CONFIG_HAS_FPU=y
+          CONFIG_AUDIO_SUPPORT=y
+          CONFIG_GPIO_SUPPORT=y
+          CONFIG_PCI_SUPPORT=y
+          CONFIG_PCIE_SUPPORT=y
+          CONFIG_USB_SUPPORT=y
+          CONFIG_RTC_SUPPORT=y
+          CONFIG_USES_DEVICETREE=y
+          CONFIG_USES_INITRAMFS=y
+          CONFIG_USES_SQUASHFS=y
+          CONFIG_NAND_SUPPORT=y
+          CONFIG_arm=y
+          CONFIG_arm_v7=y
+          CONFIG_ARCH="arm"
+          EOF
+
+          #
+          # ===============================================================
+          # 
+
+          sed -i 's/^[ \t]*//g' ./.config
+          make defconfig
+
+      - name: Make download
+        run: |
+          make download -j8 || make download -j1 V=s
+          rm -rf $(find ./dl/ -size -1024c)
+          df -h
+
+      - name: Compile firmware
+        run: |
+          make -j$(nproc) || make -j1 V=s
+          echo "======================="
+          echo "Space usage:"
+          echo "======================="
+          df -h
+          echo "======================="
+          du -h ./ --max-depth=1
+          du -h /mnt/openwrt/ --max-depth=1 || true
+
+      - name: Prepare artifact
+        run: |
+          mkdir -p ./artifact/firmware
+          mkdir -p ./artifact/package
+          mkdir -p ./artifact/buildinfo
+          rm -rf $(find ./bin/targets/ -type d -name "packages")
+          cp -rf $(find ./bin/targets/ -type f) ./artifact/firmware/
+          cp -rf $(find ./bin/packages/ -type f -name "*.ipk") ./artifact/package/
+          cp -rf $(find ./bin/targets/ -type f -name "*.buildinfo" -o -name "*.manifest") ./artifact/buildinfo/
+
+      - name: Deliver firmware
+        uses: actions/upload-artifact@v2
+        with:
+          name: OpenWrt_firmware
+          path: ./bin/targets/
